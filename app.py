@@ -1509,39 +1509,31 @@ def analyze_single_supplier_category(supplier, category, regions, num_sources, p
         st.error(f"Missing API key: {e}")
         return []
     
-    # Category-specific search configurations
+    # Infrastructure-focused category configurations for built assets
     category_configs = {
-        "Financial Performance & Risk": {
-            "keywords": ["financial results", "earnings", "revenue", "profit", "debt", "credit rating"],
-            "sources": ["site:reuters.com", "site:bloomberg.com", "site:ft.com"]
-        },
-        "Innovation & Product Launches": {
-            "keywords": ["product launch", "innovation", "patent", "technology", "R&D"],
-            "sources": ["site:techcrunch.com", "site:wired.com", "site:businesswire.com"]
-        },
-        "Partnerships & Acquisitions": {
-            "keywords": ["acquisition", "merger", "partnership", "deal", "alliance"],
-            "sources": ["site:reuters.com", "site:wsj.com", "site:bloomberg.com"]
-        },
         "Regulatory & Compliance": {
-            "keywords": ["regulation", "compliance", "fine", "penalty", "investigation"],
-            "sources": ["site:gov.uk", "site:fca.org.uk", "site:reuters.com"]
+            "keywords": ["regulation", "compliance", "building standards", "safety requirements", "environmental regulations"],
+            "sources": ["site:gov.uk", "site:hse.gov.uk", "site:environment-agency.gov.uk"]
         },
-        "Cybersecurity & Risk Events": {
-            "keywords": ["cybersecurity", "breach", "hack", "security incident", "vulnerability"],
-            "sources": ["site:krebsonsecurity.com", "site:bleepingcomputer.com", "site:reuters.com"]
+        "Infrastructure Investment & Projects": {
+            "keywords": ["infrastructure investment", "construction projects", "public works", "capital projects", "asset development"],
+            "sources": ["site:infrastructure-intelligence.com", "site:constructionnews.co.uk", "site:gov.uk"]
         },
-        "Market Trends & Analysis": {
-            "keywords": ["market analysis", "industry report", "forecast", "trends"],
-            "sources": ["site:mckinsey.com", "site:economist.com", "site:reuters.com"]
+        "Technology & Innovation": {
+            "keywords": ["construction technology", "building innovation", "smart infrastructure", "digital construction", "automation"],
+            "sources": ["site:newcivilengineer.com", "site:building.co.uk", "site:water-technology.net"]
         },
-        "Leadership & Strategy Changes": {
-            "keywords": ["CEO", "executive", "leadership", "strategy change", "resignation"],
-            "sources": ["site:businesswire.com", "site:ft.com", "site:reuters.com"]
+        "Supply Chain & Procurement": {
+            "keywords": ["construction procurement", "supplier management", "materials supply", "contract awards", "framework agreements"],
+            "sources": ["site:contracts-finder.service.gov.uk", "site:crowncommercial.gov.uk", "site:constructionenquirer.com"]
         },
-        "Supply Chain & Operations": {
-            "keywords": ["supply chain", "operations", "manufacturing", "logistics"],
-            "sources": ["site:supplychaindive.com", "site:reuters.com", "site:bloomberg.com"]
+        "Asset Performance & Maintenance": {
+            "keywords": ["asset management", "maintenance contracts", "facility management", "infrastructure performance", "lifecycle management"],
+            "sources": ["site:utilityweek.co.uk", "site:waterindustry.co.uk", "site:ft.com"]
+        },
+        "Sustainability & Environmental": {
+            "keywords": ["sustainable construction", "carbon reduction", "environmental impact", "green building", "net zero"],
+            "sources": ["site:environment-agency.gov.uk", "site:defra.gov.uk", "site:wwtonline.co.uk"]
         }
     }
     
@@ -2297,7 +2289,7 @@ def analyze_category_intelligence_credible(category, suppliers, regions, num_sou
 Extract specific, actionable alerts about {supplier} that affect UK procurement decisions.
 
 Return JSON array with objects containing:
-- "category": One of [Financial Performance & Risk, Innovation & Product Launches, Partnerships & Acquisitions, Regulatory & Compliance, Cybersecurity & Risk Events, Market Trends & Analysis, Leadership & Strategy Changes, Supply Chain & Operations]
+- "category": One of [Regulatory & Compliance, Infrastructure Investment & Projects, Technology & Innovation, Supply Chain & Procurement, Asset Performance & Maintenance, Sustainability & Environmental]
 - "title": Specific headline (max 10 words)
 - "description": Key details for procurement teams
 - "impact": High/Medium/Low
