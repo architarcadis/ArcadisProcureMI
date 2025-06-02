@@ -1,0 +1,105 @@
+Extend an existing Streamlit web application (built with Python and Streamlit) by adding a new tab called "Market Research" and a sidebar for API configuration keys. The app already has tabs with procurement data uploaded by users. Use Streamlit’s native components for the UI, a modern visualization library (e.g., Plotly, Altair, or Streamlit’s built-in charting) for elegant visuals, and a database (e.g., SQLite or MongoDB) for data storage. Ensure the implementation is modular, secure, and integrates with the existing app structure.
+1. Sidebar for API Configuration
+Add a sidebar to the Streamlit app, accessible across all tabs.
+
+Include a section in the sidebar titled "API Configuration Keys" with:
+Text input fields for securely entering API keys (e.g., Google Custom Search API, LLM API like xAI’s Grok API).
+
+A button to save keys to a database (e.g., SQLite or MongoDB) with encryption (use Python’s cryptography or similar for key storage).
+
+A button to validate and test API key functionality (e.g., test a sample API call).
+
+Use Streamlit’s st.session_state to manage key input persistence during the session.
+
+Ensure the sidebar is clean, user-friendly, and follows Streamlit’s styling.
+2. New Tab: Market Research
+Add a new tab named Market Research to the existing Streamlit app (using st.tabs or similar).
+
+At the top of the tab, include the following user input components using Streamlit’s widgets:
+Slider for Suppliers: A Streamlit slider (st.slider) to select a range of top suppliers (from 5 to 20). Dynamically populate the supplier list from procurement data stored in the app’s database (from other tabs).
+
+Multi-select Category Dropdown: A multi-select dropdown (st.multiselect) for categories, populated from the procurement data in the database.
+
+Slider for Sources to Crawl: A slider (st.slider) to select the number of sources to crawl (from 2 to 20) using Google Custom Search.
+
+Multi-select Region Dropdown: A multi-select dropdown (st.multiselect) for regions (e.g., North America, Europe, Asia, etc.), with a predefined list or populated dynamically if available in the procurement data.
+
+Submit Button: A button (st.button) to trigger data crawling and processing based on the inputs.
+Use Streamlit’s layout features (e.g., st.columns, st.container) for a clean, organized input section.
+3. Wireframe for Visuals in Market Research Tab
+Below the input section, create five sub-tabs (using st.tabs) within the Market Research tab to display elegant, interactive visuals (not raw text) based on crawled data. Use a visualization library like Plotly or Altair for professional, interactive charts. The sub-tabs and their visuals should include:
+Supplier Intelligence (Public Data):
+Wireframe: A dashboard with a bar chart comparing key metrics (e.g., revenue, market share, reliability scores) for selected suppliers. Include a table summarizing supplier details (name, location, key products).
+
+Visuals: Interactive Plotly bar chart with hover tooltips, a Streamlit table (st.table) or DataFrame (st.dataframe) with clickable rows for supplier details.
+
+Data Source: Public data crawled via Google Custom Search based on supplier names and regions.
+Category Intelligence:
+Wireframe: A pie chart or treemap showing market share or demand trends for selected categories. Include a line chart for historical category performance.
+
+Visuals: Plotly pie chart or Altair treemap with hover effects, an interactive line chart with zoom functionality.
+
+Data Source: Public data on categories crawled via Google Custom Search, filtered by selected categories.
+Regulatory Monitoring:
+Wireframe: A heatmap or timeline chart showing regulatory changes or compliance requirements across selected regions. Include a text summary of key updates.
+
+Visuals: Plotly heatmap with color gradients or Altair timeline with clickable events, a Streamlit text area (st.write) for summaries.
+
+Data Source: Regulatory news crawled via Google Custom Search, filtered by region and category.
+Potential New Suppliers:
+Wireframe: A scatter plot comparing potential suppliers based on metrics like innovation score, cost, and reliability. Include a filterable list of supplier profiles.
+
+Visuals: Interactive Plotly scatter plot with hover details, a Streamlit DataFrame with search/filter options (e.g., using st.dataframe with st.text_input).
+
+Data Source: Public data on emerging suppliers crawled via Google Custom Search, based on category and region.
+Macro Economic Indicators:
+Wireframe: A line chart showing trends in economic indicators (e.g., inflation, GDP growth, trade volumes) across selected regions. Include summary cards for key metrics.
+
+Visuals: Plotly multi-line chart with toggleable indicators, Streamlit metric cards (st.metric) for key data points.
+
+Data Source: Economic data crawled via Google Custom Search, filtered by region.
+4. Data Crawling and Processing
+Use the Google Custom Search API (via Python’s google-api-python-client) to crawl the web based on user inputs:
+Construct search queries by combining selected suppliers, categories, regions, and the number of sources (from sliders).
+
+Crawl up to the specified number of sources (2–20) per query.
+
+Store raw crawled data (e.g., text, metadata, URLs) in the database with a schema including fields for source, content, timestamp, and query parameters.
+Use an LLM (e.g., Grok via xAI API) to process crawled data:
+Convert raw text into structured data tailored to each sub-tab’s visuals (e.g., extract supplier metrics, regulatory updates, economic indicators).
+
+Store structured data in the database with tables/collections for each sub-tab (e.g., suppliers, categories, regulations, new_suppliers, economic_indicators).
+
+Use Python libraries (e.g., pandas, json) for data cleaning, deduplication, and formatting for visualization.
+Cache processed data using Streamlit’s @st.cache_data to optimize performance.
+5. Sub-Tab Visual Implementation
+Implement each sub-tab with elegant, interactive visuals using Plotly or Altair, avoiding raw crawled text.
+
+Ensure visuals are responsive, with hover effects, click interactions, and filters (e.g., Streamlit widgets for filtering data).
+
+Use Streamlit’s styling options (e.g., st.markdown, custom CSS) for a consistent, professional design theme (modern, minimalistic, professional color palette).
+
+Include loading spinners (st.spinner) and error messages (st.error) for API failures or empty data.
+6. Technical Requirements
+Framework: Extend the existing Streamlit app (Python-based).
+
+Database: Use SQLite or MongoDB to store API keys, raw crawled data, and structured data. Ensure compatibility with the existing app’s database if applicable.
+
+APIs: Integrate Google Custom Search API (google-api-python-client) for crawling and xAI’s Grok API (or similar LLM, e.g., via requests or SDK) for data processing.
+
+Security: Encrypt API keys using Python’s cryptography library, validate user inputs to prevent injection, and secure database connections.
+
+Performance: Optimize data retrieval and visualization rendering with caching (st.cache_data, st.cache_resource) and efficient queries.
+
+Dependencies: Include required Python libraries (e.g., streamlit, plotly, altair, pandas, google-api-python-client, requests) in a requirements.txt.
+7. Deliverables
+Updated Streamlit app with the new Market Research tab and sidebar integrated into the existing codebase.
+
+Database schema for storing API keys, raw data, and structured data.
+
+Documentation for setup, API integration, database structure, and running the app.
+
+Responsive, elegant UI with interactive visuals in sub-tabs.
+
+Error handling and loading states for a smooth user experience.
+

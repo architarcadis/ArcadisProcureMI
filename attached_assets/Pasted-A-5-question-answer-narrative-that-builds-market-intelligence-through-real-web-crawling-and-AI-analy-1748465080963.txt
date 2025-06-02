@@ -1,0 +1,38 @@
+A 5-question-answer narrative that builds market intelligence through real web crawling and AI analysis:
+1. ❓ Who Are We Analyzing?
+Purpose: Sets strategic context and target company profile
+Data Source: Company context analysis + industry identification
+Output: Market segments to investigate + web crawling keywords
+2. 🔍 What Technologies Matter?
+Purpose: Technology landscape analysis from discovered suppliers
+Data Source: Web-scraped supplier profiles → AI analysis of technologies
+Output: Innovation trends + technology frequency analysis + segment scoring
+3. 🏢 Who Are The Key Players?
+Purpose: Supplier profiles with strategic rankings
+Data Source: Real company websites + AI-powered profile generation
+Output: Top performers by relevance + detailed company profiles + capabilities
+4. 📊 How Do They Compare?
+Purpose: Competitive analytics and performance matrices
+Data Source: Aggregated supplier data → visual analytics
+Output: Performance charts + market trends + competitive insights
+5. 💡 What Should We Do?
+Purpose: Actionable strategic recommendations
+Data Source: Analysis synthesis → strategic priorities
+Output: Priority actions + next steps + export capabilities
+Key Technical Components:
+Intelligence Engine:
+Web Crawling: Real supplier website content extraction
+AI Analysis: OpenAI-powered content analysis and scoring
+Search Discovery: SerpAPI for supplier discovery
+Data Storage: PostgreSQL for persistent intelligence database
+Question-Answer Flow:
+Each section poses a strategic business question and answers it with authentic web-crawled data, building a complete intelligence narrative that grows over time.
+Integration Points:
+Database Schema: Company analyses, market segments, supplier profiles
+API Requirements: OpenAI + SerpAPI for real data gathering
+Tab Framework: Modular design for easy integration into other Streamlit apps
+This creates a narrative-driven intelligence system where each question builds on the previous answer, culminating in actionable business insights based on real market data.
+Whatever data is crawled should be stored and if user clicks on the button then it should only crawl incrementally instead of crawling again. Make it an intelligent crawler.
+All these sectins should be built with elegant visuals and actionable insights
+
+Would you like me to package this as a reusable component for your other applications?

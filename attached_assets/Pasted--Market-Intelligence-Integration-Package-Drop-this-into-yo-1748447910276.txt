@@ -1,0 +1,236 @@
+"""
+Market Intelligence Integration Package
+=====================================
+
+Drop this into your existing Streamlit app to add Market Intelligence as a new tab.
+
+STEP 1: Copy this file to your app directory
+STEP 2: Copy the components/ and services/ folders
+STEP 3: Add one line to your main app
+
+Example integration:
+```python
+from market_intelligence_integration_package import add_market_intelligence_tab
+
+# In your existing app where you create tabs:
+tab1, tab2, tab3, tab_intel = st.tabs([
+    "Your Tab 1", 
+    "Your Tab 2", 
+    "Your Tab 3",
+    "🔍 Market Intelligence"
+])
+
+with tab_intel:
+    add_market_intelligence_tab()
+```
+"""
+
+import streamlit as st
+import os
+from typing import Dict, Any, Optional
+from datetime import datetime
+
+# Import the intelligence components
+try:
+    from components.intelligence_narrative_component import IntelligenceNarrativeComponent
+    from services.database_service import DatabaseService
+    from services.openai_service import OpenAIService
+    from services.serpapi_service import SerpAPIService
+    from services.web_scraper import WebScraperService
+    COMPONENTS_AVAILABLE = True
+except ImportError:
+    COMPONENTS_AVAILABLE = False
+
+def add_market_intelligence_tab():
+    """
+    Add Market Intelligence functionality to your existing app
+    Call this function inside your new tab
+    """
+    
+    if not COMPONENTS_AVAILABLE:
+        st.error("📦 Market Intelligence components not found. Please copy the components/ and services/ folders to your app directory.")
+        st.info("Required folders: components/, services/")
+        return
+    
+    st.header("🔍 Market Intelligence Center")
+    st.markdown("Generate comprehensive supplier intelligence through real-time web research and AI analysis.")
+    
+    # Company selection and analysis trigger
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        company_name = st.text_input(
+            "🏢 Company Name", 
+            placeholder="Enter company name (e.g., Tesla, Microsoft, Apple...)",
+            help="Enter any company name to analyze their supplier ecosystem"
+        )
+    
+    with col2:
+        st.markdown("<br>", unsafe_allow_html=True)  # Add spacing
+        analysis_depth = st.selectbox(
+            "Analysis Depth",
+            ["Standard", "Deep Analysis"],
+            help="Deep analysis gathers more supplier data"
+        )
+    
+    # Analysis trigger
+    if st.button(f"🚀 Analyze {company_name if company_name else 'Company'} Supplier Ecosystem", 
+                disabled=not company_name, 
+                type="primary"):
+        
+        if not company_name:
+            st.warning("Please enter a company name to analyze.")
+            return
+            
+        analyze_company_intelligence(company_name, analysis_depth)
+    
+    # Show existing analyses
+    show_existing_analyses()
+
+def analyze_company_intelligence(company_name: str, analysis_depth: str):
+    """Run the complete market intelligence analysis"""
+    
+    try:
+        # Initialize services
+        database_service = DatabaseService()
+        
+        # Check if analysis already exists
+        existing_analysis = database_service.get_company_analysis(company_name)
+        
+        if existing_analysis:
+            st.success(f"✅ Found existing analysis for {company_name}")
+            render_intelligence_narrative(existing_analysis, company_name)
+            return
+        
+        # Create new analysis
+        st.info(f"🔄 Starting real-time intelligence gathering for {company_name}...")
+        
+        # Progress tracking
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        # This would trigger the real analysis - for integration, you'd connect to your analysis system
+        status_text.text("🌐 Gathering web intelligence...")
+        progress_bar.progress(25)
+        
+        status_text.text("🤖 AI analyzing supplier capabilities...")
+        progress_bar.progress(50)
+        
+        status_text.text("📊 Building market insights...")
+        progress_bar.progress(75)
+        
+        status_text.text("📋 Generating executive summary...")
+        progress_bar.progress(100)
+        
+        # For now, show placeholder - in real integration this would be your analysis data
+        st.success(f"✅ Analysis complete for {company_name}!")
+        st.info("🔗 **Integration Note**: Connect this to your Market Intelligence analysis system to display real supplier data here.")
+        
+        # Clear progress indicators
+        progress_bar.empty()
+        status_text.empty()
+        
+    except Exception as e:
+        st.error(f"❌ Error during analysis: {str(e)}")
+        st.info("💡 **Tip**: Ensure your API keys are configured in your environment")
+
+def render_intelligence_narrative(analysis_data: Dict[str, Any], company_name: str):
+    """Render the complete intelligence narrative"""
+    
+    if not COMPONENTS_AVAILABLE:
+        st.error("Components not available for rendering narrative")
+        return
+    
+    try:
+        # Create the narrative component
+        narrative = IntelligenceNarrativeComponent()
+        
+        # Render the flowing story
+        narrative.render_narrative_story(analysis_data, company_name)
+        
+    except Exception as e:
+        st.error(f"Error rendering narrative: {str(e)}")
+
+def show_existing_analyses():
+    """Show list of existing company analyses"""
+    
+    if not COMPONENTS_AVAILABLE:
+        return
+    
+    try:
+        database_service = DatabaseService()
+        companies = database_service.list_analyzed_companies()
+        
+        if companies:
+            st.markdown("---")
+            st.subheader("📋 Previous Analyses")
+            
+            # Display as clickable cards
+            cols = st.columns(min(len(companies), 4))
+            
+            for i, company in enumerate(companies[:4]):  # Show max 4
+                with cols[i % 4]:
+                    if st.button(f"📊 {company}", key=f"load_{company}"):
+                        analysis_data = database_service.get_company_analysis(company)
+                        if analysis_data:
+                            st.rerun()  # Refresh to show analysis
+            
+            if len(companies) > 4:
+                st.caption(f"... and {len(companies) - 4} more analyses")
+                
+    except Exception as e:
+        st.caption("No previous analyses found")
+
+def setup_intelligence_environment():
+    """
+    Setup function to check environment and dependencies
+    Call this once in your app to verify everything is ready
+    """
+    
+    issues = []
+    
+    # Check required environment variables
+    required_env_vars = ['OPENAI_API_KEY', 'SERPAPI_API_KEY', 'DATABASE_URL']
+    for var in required_env_vars:
+        if not os.getenv(var):
+            issues.append(f"Missing environment variable: {var}")
+    
+    # Check component availability
+    if not COMPONENTS_AVAILABLE:
+        issues.append("Market Intelligence components not found")
+    
+    return issues
+
+# Integration helper functions
+def get_integration_status():
+    """Check if integration is ready"""
+    issues = setup_intelligence_environment()
+    return len(issues) == 0, issues
+
+def display_integration_guide():
+    """Show integration guide for developers"""
+    
+    st.markdown("""
+    ## 🛠️ Integration Guide
+    
+    ### Quick Setup:
+    1. **Copy Files**: Copy `components/` and `services/` folders to your app
+    2. **Environment**: Set `OPENAI_API_KEY`, `SERPAPI_API_KEY`, `DATABASE_URL`
+    3. **Add Tab**: Use `add_market_intelligence_tab()` in your tab
+    
+    ### Example Code:
+    ```python
+    from market_intelligence_integration_package import add_market_intelligence_tab
+    
+    # In your main app:
+    tab1, tab2, tab_intel = st.tabs(["Tab 1", "Tab 2", "🔍 Intelligence"])
+    
+    with tab_intel:
+        add_market_intelligence_tab()
+    ```
+    """)
+
+if __name__ == "__main__":
+    # Test the integration package
+    st.title("Market Intelligence Integration Test")
+    add_market_intelligence_tab()
