@@ -1458,21 +1458,19 @@ def show_marketscan_ai_intelligence():
     with col3:
         st.subheader("📋 Intelligence Categories")
         intelligence_categories = [
-                "Financial Performance & Risk",
-                "Innovation & Product Launches", 
-                "Partnerships & Acquisitions",
                 "Regulatory & Compliance",
-                "Cybersecurity & Risk Events",
-                "Market Trends & Analysis",
-                "Leadership & Strategy Changes",
-                "Supply Chain & Operations"
+                "Infrastructure Investment & Projects",
+                "Technology & Innovation",
+                "Supply Chain & Procurement",
+                "Asset Performance & Maintenance",
+                "Sustainability & Environmental"
         ]
         
         categories_with_all = ["All"] + intelligence_categories
         selected_categories_raw = st.multiselect(
             "Select Intelligence Types",
             categories_with_all,
-            default=["Financial Performance & Risk", "Innovation & Product Launches"],
+            default=["Regulatory & Compliance", "Infrastructure Investment & Projects"],
             help="Choose intelligence categories to analyze"
         )
         
@@ -1755,14 +1753,44 @@ def display_intelligence_results_sleek(alerts, suppliers, regions, categories):
     st.subheader("🎯 Key Market Intelligence Alerts")
     st.caption("Showing high-impact alerts across all suppliers and categories")
     
-    # Filter for key alerts (high severity/impact)
-    key_alerts = [alert for alert in alerts if 
-                  alert.get('severity', '').lower() in ['high', 'critical'] or 
-                  alert.get('impact_level', '').lower() in ['high', 'critical']]
+    # Sort all alerts by recency first, then impact level for key alerts
+    import datetime
     
-    if not key_alerts:
-        # If no high-impact alerts, show top alerts by confidence/relevance
-        key_alerts = sorted(alerts, key=lambda x: x.get('confidence_score', 0), reverse=True)[:6]
+    def get_alert_priority_score(alert):
+        """Calculate priority score based on recency and impact"""
+        # Recency score (higher is more recent)
+        recency_score = 0
+        date_found = alert.get('date_found', '')
+        if 'hour' in date_found or 'minute' in date_found:
+            recency_score = 100  # Very recent (hours/minutes)
+        elif 'day' in date_found and 'ago' in date_found:
+            days_match = [int(s) for s in date_found.split() if s.isdigit()]
+            if days_match and days_match[0] <= 3:
+                recency_score = 90  # Last 3 days
+            elif days_match and days_match[0] <= 7:
+                recency_score = 80  # Last week
+            else:
+                recency_score = 70  # Older than a week
+        else:
+            recency_score = 60  # Unknown date
+        
+        # Impact score
+        impact_score = 0
+        severity = alert.get('severity', '').lower()
+        if severity in ['high', 'critical']:
+            impact_score = 50
+        elif severity == 'medium':
+            impact_score = 30
+        else:
+            impact_score = 10
+        
+        return recency_score + impact_score
+    
+    # Sort all alerts by priority score (recency + impact)
+    sorted_alerts = sorted(alerts, key=get_alert_priority_score, reverse=True)
+    
+    # Take top 6 most recent and impactful alerts
+    key_alerts = sorted_alerts[:6]
     
     # Key Metrics
     col1, col2, col3, col4 = st.columns(4)
@@ -2015,6 +2043,9 @@ def generate_market_intelligence_desktop(suppliers, regions, categories, depth):
         total_steps = len(categories) * len(suppliers_to_analyze)
         current_step = 0
         
+        # Global tracking to prevent duplicate sources across all categories
+        global_used_sources = set()
+        
         for category in categories:
             status_text.text(f"Analyzing {category}...")
             
@@ -2023,7 +2054,8 @@ def generate_market_intelligence_desktop(suppliers, regions, categories, depth):
                 suppliers_to_analyze,
                 regions,
                 num_sources,
-                lambda step: update_progress(progress_bar, status_text, current_step + step, total_steps, category)
+                lambda step: update_progress(progress_bar, status_text, current_step + step, total_steps, category),
+                global_used_sources  # Pass global tracking
             )
             
             all_alerts.extend(category_alerts)
@@ -2314,7 +2346,7 @@ Only extract real information present in the content. If no relevant procurement
 
 
 
-def analyze_category_intelligence(category, suppliers, regions, num_sources, progress_callback):
+def analyze_category_intelligence(category, suppliers, regions, num_sources, progress_callback, global_used_sources=None):
     """Enhanced intelligence analysis with diverse sources and better categorization"""
     
     # Get API keys from environment
@@ -2326,116 +2358,37 @@ def analyze_category_intelligence(category, suppliers, regions, num_sources, pro
         st.error(f"Missing API key: {e}")
         return []
     
-    # Expanded source configurations with comprehensive coverage
+    # Infrastructure-focused categories for built assets procurement
     category_configs = {
-        "Financial Performance & Risk": {
-            "primary_keywords": "quarterly earnings financial results revenue profit loss debt",
-            "secondary_keywords": "credit rating bankruptcy restructuring dividend",
-            "sources": [
-                "site:reuters.com", "site:bloomberg.com", "site:ft.com", "site:wsj.com", "site:marketwatch.com",
-                "site:cnbc.com", "site:bbc.co.uk/news/business", "site:theguardian.com/business",
-                "site:companieshouse.gov.uk", "site:sec.gov", "site:londonstockexchange.com",
-                "site:investorschronicle.co.uk", "site:morningstar.co.uk", "site:cityam.com",
-                "site:thisismoney.co.uk", "site:telegraph.co.uk/business", "site:independent.co.uk/money",
-                "site:yahoo.com/finance", "site:fool.co.uk", "site:proactiveinvestors.co.uk"
-            ],
-            "exclude_terms": "product launch innovation partnership cybersecurity"
-        },
-        "Innovation & Product Launches": {
-            "primary_keywords": "product launch innovation patent technology development R&D",
-            "secondary_keywords": "prototype breakthrough announcement release unveil",
-            "sources": [
-                "site:techcrunch.com", "site:wired.com", "site:engadget.com", "site:theverge.com",
-                "site:arstechnica.com", "site:zdnet.com", "site:cnet.com", "site:venturebeat.com",
-                "site:businesswire.com", "site:prnewswire.com", "site:globenewswire.com",
-                "site:techradar.com", "site:digitaltrends.com", "site:fastcompany.com",
-                "site:mit.edu/news", "site:nature.com", "site:science.org", "site:newscientist.com",
-                "site:technologyreview.com", "site:ieee.org"
-            ],
-            "exclude_terms": "earnings revenue acquisition regulatory cybersecurity"
-        },
-        "Partnerships & Acquisitions": {
-            "primary_keywords": "acquisition merger partnership joint venture alliance deal",
-            "secondary_keywords": "takeover buyout collaboration strategic investment",
-            "sources": [
-                "site:reuters.com", "site:wsj.com", "site:bloomberg.com", "site:ft.com",
-                "site:dealbook.nytimes.com", "site:mergermarket.com", "site:pitchbook.com",
-                "site:pehub.com", "site:privateequitywire.co.uk", "site:unquote.com",
-                "site:businesswire.com", "site:prnewswire.com", "site:cnbc.com",
-                "site:bbc.co.uk/news/business", "site:theguardian.com/business",
-                "site:cityam.com", "site:telegraph.co.uk/business", "site:economist.com",
-                "site:law.com", "site:legalbusiness.co.uk"
-            ],
-            "exclude_terms": "earnings product launch cybersecurity regulatory"
-        },
         "Regulatory & Compliance": {
-            "primary_keywords": "regulation compliance policy fine penalty government investigation",
-            "secondary_keywords": "lawsuit legal settlement regulatory approval",
-            "sources": [
-                "site:gov.uk", "site:fca.org.uk", "site:legislation.gov.uk", "site:parliament.uk",
-                "site:hmrc.gov.uk", "site:ofgem.gov.uk", "site:ofcom.org.uk", "site:cma.gov.uk",
-                "site:lawgazette.co.uk", "site:legalcheek.com", "site:thelawyer.com",
-                "site:out-law.com", "site:lexology.com", "site:mondaq.com",
-                "site:bbc.co.uk/news", "site:theguardian.com/law", "site:telegraph.co.uk/news",
-                "site:reuters.com", "site:bloomberg.com", "site:ft.com"
-            ],
-            "exclude_terms": "earnings product launch partnership cybersecurity"
+            "primary_keywords": "ofwat regulation environmental compliance water quality safety standards",
+            "secondary_keywords": "planning permission construction permit legal settlement fine",
+            "exclude_terms": "technology innovation procurement investment maintenance"
         },
-        "Cybersecurity & Risk Events": {
-            "primary_keywords": "cybersecurity breach hack data leak security incident",
-            "secondary_keywords": "ransomware vulnerability malware attack threat",
-            "sources": [
-                "site:krebsonsecurity.com", "site:bleepingcomputer.com", "site:securityweek.com",
-                "site:darkreading.com", "site:threatpost.com", "site:cyberscoop.com",
-                "site:scmagazine.com", "site:infosecurity-magazine.com", "site:cybersecuritydive.com",
-                "site:zdnet.com/topic/security", "site:techcrunch.com/tag/security",
-                "site:arstechnica.com/security", "site:wired.com/category/security",
-                "site:bbc.co.uk/news/technology", "site:theguardian.com/technology",
-                "site:reuters.com/technology", "site:ncsc.gov.uk", "site:cisecurity.org",
-                "site:sans.org", "site:cert.org"
-            ],
-            "exclude_terms": "earnings product launch partnership regulatory"
+        "Infrastructure Investment & Projects": {
+            "primary_keywords": "infrastructure investment capital expenditure project funding construction",
+            "secondary_keywords": "pipeline investment water treatment plant facility upgrade",
+            "exclude_terms": "regulation compliance technology innovation maintenance"
         },
-        "Market Trends & Analysis": {
-            "primary_keywords": "market analysis industry report forecast trends outlook",
-            "secondary_keywords": "market share growth projection competitive landscape",
-            "sources": [
-                "site:mckinsey.com", "site:pwc.com", "site:deloitte.com", "site:ey.com",
-                "site:kpmg.com", "site:bain.com", "site:bcg.com", "site:accenture.com",
-                "site:gartner.com", "site:forrester.com", "site:idc.com", "site:frost.com",
-                "site:economist.com", "site:hbr.org", "site:strategy-business.com",
-                "site:marketresearch.com", "site:mintel.com", "site:euromonitor.com",
-                "site:statista.com", "site:ons.gov.uk", "site:tradingeconomics.com"
-            ],
-            "exclude_terms": "earnings product launch partnership cybersecurity regulatory"
+        "Technology & Innovation": {
+            "primary_keywords": "smart water technology IoT sensors leak detection innovation",
+            "secondary_keywords": "water treatment technology sustainable infrastructure digital solutions",
+            "exclude_terms": "regulation investment procurement maintenance compliance"
         },
-        "Leadership & Strategy Changes": {
-            "primary_keywords": "CEO appointment executive leadership strategy change resignation",
-            "secondary_keywords": "management restructure board director succession",
-            "sources": [
-                "site:linkedin.com/pulse", "site:businesswire.com", "site:prnewswire.com",
-                "site:hrmagazine.co.uk", "site:personneltoday.com", "site:hrzone.com",
-                "site:hrdive.com", "site:executivegrapevine.com", "site:boardagenda.com",
-                "site:ft.com", "site:wsj.com", "site:bloomberg.com", "site:reuters.com",
-                "site:bbc.co.uk/news/business", "site:theguardian.com/business",
-                "site:telegraph.co.uk/business", "site:cityam.com", "site:managementtoday.co.uk",
-                "site:director.co.uk", "site:executivesecretary.com"
-            ],
-            "exclude_terms": "earnings product launch partnership cybersecurity regulatory"
+        "Supply Chain & Procurement": {
+            "primary_keywords": "procurement supply chain contractor materials sourcing equipment",
+            "secondary_keywords": "supplier agreement construction materials tender contract",
+            "exclude_terms": "regulation investment technology maintenance compliance"
         },
-        "Supply Chain & Operations": {
-            "primary_keywords": "supply chain operations manufacturing logistics disruption",
-            "secondary_keywords": "production facility warehouse distribution operations",
-            "sources": [
-                "site:supplychaindive.com", "site:logisticsmgmt.com", "site:manufacturingglobal.com",
-                "site:inboundlogistics.com", "site:supplychainbrain.com", "site:mmh.com",
-                "site:manufacturing.net", "site:industryweek.com", "site:plantengineering.com",
-                "site:assemblymag.com", "site:automationworld.com", "site:logisticsmanager.com",
-                "site:commercialmotor.com", "site:motor-transport.co.uk", "site:theloadstar.com",
-                "site:lloydsloadinglist.com", "site:aircargonews.net", "site:portstrategy.com",
-                "site:reuters.com/business", "site:bloomberg.com/news/articles"
-            ],
-            "exclude_terms": "earnings product launch partnership cybersecurity regulatory"
+        "Asset Performance & Maintenance": {
+            "primary_keywords": "infrastructure failure maintenance asset condition service disruption",
+            "secondary_keywords": "repair upgrade pipeline burst facility maintenance outage",
+            "exclude_terms": "regulation investment technology procurement compliance"
+        },
+        "Sustainability & Environmental": {
+            "primary_keywords": "sustainability carbon reduction environmental impact renewable energy",
+            "secondary_keywords": "circular economy green infrastructure climate adaptation",
+            "exclude_terms": "regulation investment technology procurement maintenance"
         }
     }
     
@@ -2448,60 +2401,223 @@ def analyze_category_intelligence(category, suppliers, regions, num_sources, pro
     
     all_results = []
     
-    # Multiple diverse search strategies per supplier
+    # Initialize global tracking if not provided
+    if global_used_sources is None:
+        global_used_sources = set()
+    
+    # Single focused search per supplier for quality
     for i, supplier in enumerate(suppliers):
         if progress_callback:
             progress_callback(i)
         
         supplier_results = []
         
-        # Strategy 1: Category-specific with primary keywords
-        query1 = f'"{supplier}" {config["primary_keywords"]} -{config["exclude_terms"]}'
+        # Comprehensive UK infrastructure sources only
+        uk_sources = "site:gov.uk OR site:ofwat.gov.uk OR site:environment-agency.gov.uk OR site:defra.gov.uk OR site:hse.gov.uk OR site:cma.gov.uk OR site:publications.parliament.uk OR site:crowncommercial.gov.uk OR site:contracts-finder.service.gov.uk OR site:constructionnews.co.uk OR site:constructionenquirer.com OR site:newcivilengineer.com OR site:building.co.uk OR site:infrastructure-intelligence.com OR site:theconstructionindex.co.uk OR site:water-technology.net OR site:waterindustry.co.uk OR site:utilityweek.co.uk OR site:wwtonline.co.uk OR site:waterworld.com OR site:ft.com OR site:ice.org.uk OR site:ciwem.org OR site:rics.org OR site:contractjournal.com"
+        query = f'"{supplier}" {config["primary_keywords"]} ({uk_sources})'
         
-        # Strategy 2: Category-specific with secondary keywords  
-        query2 = f'"{supplier}" {config["secondary_keywords"]} -{config["exclude_terms"]}'
-        
-        # Strategy 3: Source-specific searches
-        for source in config["sources"][:3]:  # Use top 3 sources
-            query3 = f'"{supplier}" {config["primary_keywords"]} {source}'
+        try:
+            service = build("customsearch", "v1", developerKey=google_api_key)
             
-            queries = [query1, query2, query3]
+            search_params = {
+                'q': query,
+                'cx': google_cse_id,
+                'num': 1,  # Only 1 result per supplier per category
+                'sort': 'date',
+                'dateRestrict': 'w1'  # Only last week for maximum relevance
+            }
             
-            for query in queries:
-                try:
-                    service = build("customsearch", "v1", developerKey=google_api_key)
+            result = service.cse().list(**search_params).execute()
+            
+            if 'items' in result:
+                for item in result['items']:
+                    url = item.get('link', '')
+                    snippet = item.get('snippet', '').lower()
+                    title = item.get('title', '').lower()
+                    domain = url.split('/')[2] if '://' in url else 'unknown'
                     
-                    search_params = {
-                        'q': query,
-                        'cx': google_cse_id,
-                        'num': max(2, num_sources // (len(suppliers) * 3)),
-                        'sort': 'date',
-                        'dateRestrict': 'm6'
-                    }
+                    # STRICT domain validation - only accept authorized UK infrastructure sources
+                    authorized_domains = [
+                        'gov.uk', 'ofwat.gov.uk', 'environment-agency.gov.uk', 'defra.gov.uk', 
+                        'hse.gov.uk', 'cma.gov.uk', 'publications.parliament.uk', 'crowncommercial.gov.uk', 
+                        'contracts-finder.service.gov.uk', 'constructionnews.co.uk', 'constructionenquirer.com', 
+                        'newcivilengineer.com', 'building.co.uk', 'infrastructure-intelligence.com', 
+                        'theconstructionindex.co.uk', 'water-technology.net', 'waterindustry.co.uk', 
+                        'utilityweek.co.uk', 'wwtonline.co.uk', 'ft.com', 'ice.org.uk', 'ciwem.org', 
+                        'rics.org', 'contractjournal.com'
+                    ]
                     
-                    result = service.cse().list(**search_params).execute()
+                    # Exact domain match validation
+                    domain_authorized = False
+                    for auth_domain in authorized_domains:
+                        if domain.endswith(auth_domain):
+                            domain_authorized = True
+                            break
                     
-                    if 'items' in result:
-                        for item in result['items']:
-                            url = item.get('link', '')
-                            snippet = item.get('snippet', '').lower()
-                            title = item.get('title', '').lower()
-                            
-                            # Enhanced relevance scoring
-                            primary_score = sum(1 for keyword in config["primary_keywords"].split() if keyword.lower() in snippet or keyword.lower() in title)
-                            exclusion_score = sum(1 for keyword in config["exclude_terms"].split() if keyword.lower() in snippet or keyword.lower() in title)
-                            
-                            # Only include if relevant to category and not excluded topics
-                            if primary_score >= 2 and exclusion_score == 0:
-                                item['category_relevance'] = primary_score
-                                item['category_focus'] = category
-                                item['supplier_focus'] = supplier
-                                supplier_results.append(item)
+                    if not domain_authorized:
+                        # Debug: Log rejected domains for investigation
+                        print(f"REJECTED DOMAIN: {domain}")
+                        continue
                     
-                    time.sleep(0.2)  # Rate limiting
+                    # Strict duplicate prevention using content fingerprint
+                    content_fingerprint = f"{title[:100]}_{snippet[:100]}".replace(' ', '')
+                    if content_fingerprint in global_used_sources:
+                        continue  # Skip if same content already used
                     
-                except Exception as e:
-                    continue
+                    # Additional URL-based duplicate check
+                    url_identifier = f"{domain}_{url.split('/')[-1] if '/' in url else url}"
+                    if url_identifier in global_used_sources:
+                        continue
+                    
+                    # Enhanced relevance scoring with stricter categorization
+                    primary_score = sum(1 for keyword in config["primary_keywords"].split() if keyword.lower() in snippet or keyword.lower() in title)
+                    exclusion_score = sum(1 for keyword in config["exclude_terms"].split() if keyword.lower() in snippet or keyword.lower() in title)
+                    
+                    # Pre-classification validation using keyword analysis
+                    def validate_category_match(title, snippet, target_category):
+                        """Validate if content actually matches the target category"""
+                        content = f"{title} {snippet}".lower()
+                        
+                        # Infrastructure-focused categorization triggers
+                        regulatory_triggers = ["ofwat", "regulation", "environmental", "compliance", "water quality", "safety standards", "planning permission", "construction permit", "fine", "penalty", "legal settlement"]
+                        investment_triggers = ["infrastructure investment", "capital expenditure", "project funding", "construction", "pipeline investment", "water treatment plant", "facility upgrade", "infrastructure project"]
+                        technology_triggers = ["smart water", "iot sensors", "leak detection", "innovation", "water treatment technology", "sustainable infrastructure", "digital solutions", "technology implementation"]
+                        procurement_triggers = ["procurement", "supply chain", "contractor", "materials sourcing", "equipment", "supplier agreement", "construction materials", "tender", "contract award"]
+                        maintenance_triggers = ["infrastructure failure", "maintenance", "asset condition", "service disruption", "repair", "upgrade", "pipeline burst", "facility maintenance", "outage", "asset performance"]
+                        sustainability_triggers = ["sustainability", "carbon reduction", "environmental impact", "renewable energy", "circular economy", "green infrastructure", "climate adaptation", "environmental project"]
+                        
+                        # Infrastructure-focused validation with strict category separation
+                        if target_category == "Regulatory & Compliance":
+                            if not any(trigger in content for trigger in regulatory_triggers):
+                                return False, "No regulatory content detected"
+                            if any(trigger in content for trigger in investment_triggers + technology_triggers + procurement_triggers):
+                                return False, "Contains non-regulatory content"
+                                
+                        elif target_category == "Infrastructure Investment & Projects":
+                            if not any(trigger in content for trigger in investment_triggers):
+                                return False, "No investment/project content detected"
+                            if any(trigger in content for trigger in regulatory_triggers + technology_triggers + procurement_triggers):
+                                return False, "Contains non-investment content"
+                                
+                        elif target_category == "Technology & Innovation":
+                            if not any(trigger in content for trigger in technology_triggers):
+                                return False, "No technology/innovation content detected"
+                            if any(trigger in content for trigger in regulatory_triggers + investment_triggers + procurement_triggers):
+                                return False, "Contains non-technology content"
+                                
+                        elif target_category == "Supply Chain & Procurement":
+                            if not any(trigger in content for trigger in procurement_triggers):
+                                return False, "No procurement content detected"
+                            if any(trigger in content for trigger in regulatory_triggers + investment_triggers + technology_triggers):
+                                return False, "Contains non-procurement content"
+                                
+                        elif target_category == "Asset Performance & Maintenance":
+                            if not any(trigger in content for trigger in maintenance_triggers):
+                                return False, "No maintenance/asset content detected"
+                            if any(trigger in content for trigger in regulatory_triggers + investment_triggers + technology_triggers):
+                                return False, "Contains non-maintenance content"
+                                
+                        elif target_category == "Sustainability & Environmental":
+                            if not any(trigger in content for trigger in sustainability_triggers):
+                                return False, "No sustainability content detected"
+                            if any(trigger in content for trigger in regulatory_triggers + investment_triggers + technology_triggers):
+                                return False, "Contains non-sustainability content"
+                                
+                        elif target_category == "Financial Performance & Risk":
+                            # Must contain financial content AND reject others
+                            if not any(trigger in content for trigger in financial_triggers):
+                                return False, "No financial content detected"
+                            if any(trigger in content for trigger in regulatory_triggers):
+                                return False, "Contains regulatory content"
+                            if any(trigger in content for trigger in innovation_triggers):
+                                return False, "Contains innovation content"
+                            if any(trigger in content for trigger in acquisition_triggers):
+                                return False, "Contains acquisition content"
+                                
+                        elif target_category == "Partnerships & Acquisitions":
+                            # Must contain acquisition content AND reject others
+                            if not any(trigger in content for trigger in acquisition_triggers):
+                                return False, "No acquisition content detected"
+                            if any(trigger in content for trigger in regulatory_triggers):
+                                return False, "Contains regulatory content"
+                            if any(trigger in content for trigger in innovation_triggers):
+                                return False, "Contains innovation content"
+                            if any(trigger in content for trigger in financial_triggers):
+                                return False, "Contains financial content"
+                                
+                        elif target_category == "Cybersecurity & Risk Events":
+                            # Must contain cybersecurity content AND reject others
+                            if not any(trigger in content for trigger in cybersecurity_triggers):
+                                return False, "No cybersecurity content detected"
+                            if any(trigger in content for trigger in regulatory_triggers):
+                                return False, "Contains regulatory content"
+                            if any(trigger in content for trigger in innovation_triggers):
+                                return False, "Contains innovation content"
+                            if any(trigger in content for trigger in financial_triggers):
+                                return False, "Contains financial content"
+                            if any(trigger in content for trigger in acquisition_triggers):
+                                return False, "Contains acquisition content"
+                                
+                        elif target_category == "Market Trends & Analysis":
+                            # Must contain market analysis content AND reject others
+                            if not any(trigger in content for trigger in market_triggers):
+                                return False, "No market analysis content detected"
+                            if any(trigger in content for trigger in regulatory_triggers):
+                                return False, "Contains regulatory content"
+                            if any(trigger in content for trigger in innovation_triggers):
+                                return False, "Contains innovation content"
+                            if any(trigger in content for trigger in financial_triggers):
+                                return False, "Contains financial content"
+                            if any(trigger in content for trigger in acquisition_triggers):
+                                return False, "Contains acquisition content"
+                                
+                        elif target_category == "Leadership & Strategy Changes":
+                            # Must contain leadership content AND reject others
+                            if not any(trigger in content for trigger in leadership_triggers):
+                                return False, "No leadership content detected"
+                            if any(trigger in content for trigger in regulatory_triggers):
+                                return False, "Contains regulatory content"
+                            if any(trigger in content for trigger in innovation_triggers):
+                                return False, "Contains innovation content"
+                            if any(trigger in content for trigger in financial_triggers):
+                                return False, "Contains financial content"
+                            if any(trigger in content for trigger in acquisition_triggers):
+                                return False, "Contains acquisition content"
+                                
+                        elif target_category == "Supply Chain & Operations":
+                            # Must contain supply chain content AND reject others
+                            if not any(trigger in content for trigger in supply_triggers):
+                                return False, "No supply chain content detected"
+                            if any(trigger in content for trigger in regulatory_triggers):
+                                return False, "Contains regulatory content"
+                            if any(trigger in content for trigger in innovation_triggers):
+                                return False, "Contains innovation content"
+                            if any(trigger in content for trigger in financial_triggers):
+                                return False, "Contains financial content"
+                            if any(trigger in content for trigger in acquisition_triggers):
+                                return False, "Contains acquisition content"
+                        
+                        return True, "Valid match"
+                    
+                    # Validate category match before adding
+                    is_valid, reason = validate_category_match(title, snippet, category)
+                    
+                    # Very strict relevance requirements for premium quality
+                    if primary_score >= 3 and exclusion_score == 0 and is_valid:
+                        item['category_relevance'] = primary_score
+                        item['category_focus'] = category
+                        item['supplier_focus'] = supplier
+                        item['source_domain'] = domain
+                        item['source_identifier'] = source_identifier
+                        item['validation_reason'] = reason
+                        supplier_results.append(item)
+                        global_used_sources.add(source_identifier)  # Mark source as used globally
+                        break  # Only take one result per supplier per category
+            
+            time.sleep(0.3)  # Increased rate limiting for quality
+            
+        except Exception as e:
+            continue
         
         # Deduplicate and sort by relevance for this supplier
         unique_results = {}
@@ -2510,9 +2626,9 @@ def analyze_category_intelligence(category, suppliers, regions, num_sources, pro
             if url not in unique_results or item['category_relevance'] > unique_results[url]['category_relevance']:
                 unique_results[url] = item
         
-        # Add top results for this supplier
+        # Add only the most relevant result per supplier for quality
         sorted_results = sorted(unique_results.values(), key=lambda x: x['category_relevance'], reverse=True)
-        all_results.extend(sorted_results[:min(5, len(sorted_results))])  # Max 5 per supplier
+        all_results.extend(sorted_results[:1])  # Maximum 1 alert per supplier per category
     
     # Process with enhanced AI that focuses on category differentiation
     if all_results:
@@ -2529,49 +2645,55 @@ def process_intelligence_with_enhanced_ai(search_results, category, suppliers, r
         openai_api_key = os.environ["OPENAI_API_KEY"]
         client = OpenAI(api_key=openai_api_key)
         
-        # Prepare diverse search results for AI analysis
+        # Prepare only the highest quality search results for AI analysis
         results_text = ""
         unique_sources = set()
         
-        for i, item in enumerate(search_results[:30]):  # Increased to 30 sources
+        for i, item in enumerate(search_results[:10]):  # Reduced to 10 premium sources only
             title = item.get('title', '')
             snippet = item.get('snippet', '')
             link = item.get('link', '')
-            domain = link.split('/')[2] if '://' in link else 'unknown'
+            domain = item.get('source_domain', link.split('/')[2] if '://' in link else 'unknown')
             
             # Track source diversity
             unique_sources.add(domain)
             
-            results_text += f"---\nSource {i+1} [{domain}]:\nTitle: {title}\nContent: {snippet}\nURL: {link}\nCategory Relevance: {item.get('category_relevance', 0)}\n"
+            results_text += f"---\nPremium Source {i+1} [{domain}]:\nTitle: {title}\nContent: {snippet}\nURL: {link}\nCategory Relevance: {item.get('category_relevance', 0)}\n"
         
-        # Enhanced system prompt with strict category enforcement
-        system_prompt = f"""You are a specialized Market Intelligence Analyst with expertise in {category}. Your task is to extract ONLY intelligence alerts that are strictly relevant to {category} and REJECT any content that belongs to other categories.
+        # Intelligent keyword-based categorization with mandatory decision tree
+        system_prompt = f"""You are an expert Market Intelligence Analyst. You MUST follow this exact decision process:
 
-CRITICAL CATEGORY REQUIREMENTS FOR {category.upper()}:
+STEP 1: KEYWORD DETECTION - Scan the content for these MANDATORY classification triggers:
 
-Financial Performance & Risk: ONLY financial earnings, revenue, profit/loss, debt, credit ratings, financial distress, bankruptcy, restructuring, dividend announcements. REJECT: product launches, partnerships, cybersecurity, regulatory changes.
+REGULATORY TRIGGERS (→ Regulatory & Compliance ONLY):
+"fine", "penalty", "Ofwat", "investigation", "compliance", "violation", "lawsuit", "legal action", "court", "regulator", "breach", "fraud", "settlement"
 
-Innovation & Product Launches: ONLY new products, technology innovations, patents, R&D developments, prototypes, product releases, breakthrough announcements. REJECT: financial results, acquisitions, cybersecurity, regulatory compliance.
+INNOVATION TRIGGERS (→ Innovation & Product Launches ONLY):
+"product launch", "new technology", "patent", "R&D breakthrough", "innovation", "prototype", "release", "breakthrough", "development"
 
-Partnerships & Acquisitions: ONLY mergers, acquisitions, joint ventures, strategic partnerships, takeovers, buyouts, collaboration deals. REJECT: financial earnings, product launches, cybersecurity, regulatory issues.
+FINANCIAL TRIGGERS (→ Financial Performance ONLY):
+"earnings", "quarterly results", "revenue", "profit", "dividend", "financial performance", "results"
 
-Regulatory & Compliance: ONLY government regulations, compliance issues, legal settlements, fines, investigations, policy changes, regulatory approvals. REJECT: financial results, product launches, partnerships, cybersecurity.
+ACQUISITION TRIGGERS (→ Partnerships & Acquisitions ONLY):
+"merger", "acquisition", "partnership", "joint venture", "takeover", "deal", "buyout"
 
-Cybersecurity & Risk Events: ONLY data breaches, cyber attacks, security incidents, hacks, vulnerabilities, ransomware, security threats. REJECT: financial results, product launches, partnerships, regulatory changes.
+STEP 2: MANDATORY CLASSIFICATION:
+- If content contains ANY regulatory trigger → MUST classify as "Regulatory & Compliance"
+- If content contains ANY innovation trigger → MUST classify as "Innovation & Product Launches"
+- If content contains ANY financial trigger → MUST classify as "Financial Performance"
+- If content contains ANY acquisition trigger → MUST classify as "Partnerships & Acquisitions"
 
-Market Trends & Analysis: ONLY industry analysis, market forecasts, competitive landscape, market share reports, industry outlooks. REJECT: specific company financials, product launches, partnerships, cybersecurity.
+STEP 3: CATEGORY VERIFICATION:
+Target category: {category}
+ONLY proceed if the mandatory classification from Step 2 matches {category}.
+If mismatch detected, IMMEDIATELY REJECT the content.
 
-Leadership & Strategy Changes: ONLY executive appointments, CEO changes, leadership resignations, management restructuring, board changes. REJECT: financial results, product launches, partnerships, cybersecurity.
+EXAMPLE MANDATORY REJECTIONS:
+"Thames Water Facing Record Ofwat Fine" → Contains "fine" + "Ofwat" → MUST be Regulatory → REJECT from Innovation
+"Company announces earnings" → Contains "earnings" → MUST be Financial → REJECT from Innovation
 
-Supply Chain & Operations: ONLY manufacturing issues, logistics disruptions, facility changes, production updates, operational changes. REJECT: financial results, product launches, partnerships, cybersecurity.
-
-STRICT FILTERING RULES:
-1. If content mentions multiple categories, classify it ONLY under the primary/dominant category
-2. If content is general company news without category-specific focus, REJECT it
-3. If content is more than 6 months old, REJECT it
-4. Each alert must have clear procurement relevance for UK operations
-5. Maximum 3 alerts per supplier to ensure diversity
-6. Minimum 70% confidence in category classification to include alert
+STEP 4: FINAL VALIDATION:
+Only include content where you are 100% certain it belongs to {category} based on the keyword triggers above.
 
 OUTPUT FORMAT: JSON object with single key 'alerts' containing array of alert objects with these exact fields:
 - "category": Must be exactly "{category}"
@@ -10036,6 +10158,60 @@ def show_consolidated_data_monitoring_tab():
         hide_index=True
     )
     
+    # Manual Supplier Entry Section
+    st.subheader("➕ Manual Supplier Entry")
+    st.markdown("Add suppliers manually for market intelligence analysis")
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        manual_suppliers_input = st.text_area(
+            "Enter Supplier Names",
+            placeholder="Enter one supplier per line:\nThames Water\nSevern Trent\nUnited Utilities\nAnglian Water\nSouth West Water",
+            height=120,
+            help="Add suppliers you want to analyze for market intelligence"
+        )
+        
+        # Display current manual suppliers if any exist
+        if 'manual_suppliers' in st.session_state and st.session_state.manual_suppliers:
+            st.markdown("**Currently Added Suppliers:**")
+            for i, supplier in enumerate(st.session_state.manual_suppliers, 1):
+                st.write(f"{i}. {supplier}")
+    
+    with col2:
+        st.markdown("<br>", unsafe_allow_html=True)  # Add some spacing
+        
+        if st.button("Add Suppliers", type="primary", use_container_width=True):
+            if manual_suppliers_input.strip():
+                new_suppliers = [s.strip() for s in manual_suppliers_input.split('\n') if s.strip()]
+                
+                # Initialize or update manual suppliers in session state
+                if 'manual_suppliers' not in st.session_state:
+                    st.session_state.manual_suppliers = []
+                
+                # Add new suppliers (avoid duplicates)
+                existing_suppliers = set(s.lower() for s in st.session_state.manual_suppliers)
+                added_count = 0
+                
+                for supplier in new_suppliers:
+                    if supplier.lower() not in existing_suppliers:
+                        st.session_state.manual_suppliers.append(supplier)
+                        added_count += 1
+                
+                if added_count > 0:
+                    st.success(f"Added {added_count} suppliers successfully")
+                    st.rerun()
+                else:
+                    st.warning("No new suppliers added (duplicates found)")
+            else:
+                st.warning("Please enter at least one supplier name")
+        
+        if st.button("Clear Manual Suppliers", type="secondary", use_container_width=True):
+            if 'manual_suppliers' in st.session_state:
+                del st.session_state.manual_suppliers
+                st.success("Manual suppliers cleared")
+                st.rerun()
+
     # Action Buttons
     st.subheader("🛠️ Data Management Actions")
     
@@ -10046,7 +10222,10 @@ def show_consolidated_data_monitoring_tab():
             for key in data_sources.keys():
                 if key in st.session_state:
                     del st.session_state[key]
-            st.success("All crawled data cleared")
+            # Also clear manual suppliers
+            if 'manual_suppliers' in st.session_state:
+                del st.session_state.manual_suppliers
+            st.success("All data cleared")
             st.rerun()
     
     with col2:
@@ -10062,7 +10241,8 @@ def show_consolidated_data_monitoring_tab():
                     'Google_CSE': 'Available' if google_cse_id else 'Missing',
                     'OpenAI_API': 'Available' if openai_api_key else 'Missing'
                 },
-                'Data_Status': status_data
+                'Data_Status': status_data,
+                'Manual_Suppliers': st.session_state.get('manual_suppliers', [])
             }
             
             import json
